@@ -189,10 +189,6 @@ AutoMessages/
 
 Espaço reservado para capturas do chat, demonstrações dos comandos e GIFs do plugin em funcionamento.
 
-## Portfólio
-
-Este é um plugin de portfólio. O código pode ser consultado para avaliação e estudo nos limites definidos pela licença proprietária incluída no repositório.
-
 ## Licença
 
 Copyright (c) 2026 Lipe. O código pode ser visualizado para portfólio e estudo, mas não pode ser redistribuído, vendido, modificado ou utilizado em projetos sem autorização expressa do autor. Consulte [LICENSE](LICENSE).
