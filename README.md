@@ -28,7 +28,7 @@ AutoMessages é um plugin leve para servidores Minecraft que envia anúncios con
 
 ## Compatibilidade
 
-Uma única JAR é compatível com Spigot e Paper da versão 1.8.9 até a 1.21.11. O projeto é compilado contra a Spigot API 1.8.8 e não usa NMS, Adventure API, reflection ou classes específicas de uma versão.
+Uma única JAR é compatível com Spigot e Paper da versão 1.8.9 até a 1.21.11.
 
 A mesma JAR contém entradas independentes para BungeeCord e Velocity. A integração com os backends usa o canal de plugin messaging `automsg:proxy`, válido tanto no limite legado do Bukkit 1.8 quanto no formato namespaced das versões modernas.
 
