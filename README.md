@@ -186,24 +186,24 @@ AutoMessages/
 
 ## Imagens
 
-### Mensagens
+### Mensagens automáticas
 
 <p align="center">
-  <img src="images/msg1.png" alt="Mensagem 1" width="800">
+  <img src="./imagens/msg1.png" alt="Mensagem automática 1" width="800">
 </p>
 
 <p align="center">
-  <img src="images/msg2.png" alt="Mensagem 2" width="800">
+  <img src="./imagens/msg2.png" alt="Mensagem automática 2" width="800">
 </p>
 
 <p align="center">
-  <img src="images/msg3.png" alt="Mensagem 3" width="800">
+  <img src="./imagens/msg3.png" alt="Mensagem automática 3" width="800">
 </p>
 
-### Sistema de ajuda
+### Comando de ajuda
 
 <p align="center">
-  <img src="images/ajuda.png" alt="Sistema de ajuda" width="800">
+  <img src="./imagens/ajuda.png" alt="Comando de ajuda" width="800">
 </p>
 
 ## Licença
