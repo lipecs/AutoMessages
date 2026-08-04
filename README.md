@@ -152,7 +152,6 @@ AutoMessages/
 ├── pom.xml
 ├── README.md
 ├── LICENSE
-├── .gitignore
 └── src/
     └── main/
         ├── java/
