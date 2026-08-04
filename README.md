@@ -184,9 +184,27 @@ AutoMessages/
             └── messages.yml
 ```
 
-## Imagens e GIFs
+## Imagens
 
-Espaço reservado para capturas do chat, demonstrações dos comandos e GIFs do plugin em funcionamento.
+### Mensagens
+
+<p align="center">
+  <img src="images/msg1.png" alt="Mensagem 1" width="800">
+</p>
+
+<p align="center">
+  <img src="images/msg2.png" alt="Mensagem 2" width="800">
+</p>
+
+<p align="center">
+  <img src="images/msg3.png" alt="Mensagem 3" width="800">
+</p>
+
+### Sistema de ajuda
+
+<p align="center">
+  <img src="images/ajuda.png" alt="Sistema de ajuda" width="800">
+</p>
 
 ## Licença
 
