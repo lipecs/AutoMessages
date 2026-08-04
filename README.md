@@ -117,6 +117,12 @@ messages:
     text:
       - "&6Visite nossa loja!"
       - "&eAdquira vantagens e ajude o servidor."
+
+  help:
+    enabled: true
+    text:
+      - "&aPrecisa de ajuda?"
+      - "&7Utilize &f/ajuda&7."
 ```
 
 Cada chave dentro de `messages` é um ID único. Todas as linhas de `text` são enviadas na ordem declarada. O comando `toggle` atualiza o campo `enabled` correspondente e salva o `config.yml`.
