@@ -208,4 +208,4 @@ AutoMessages/
 
 ## Licença
 
-Copyright (c) 2026 Lipe. O código pode ser visualizado para portfólio e estudo, mas não pode ser redistribuído, vendido, modificado ou utilizado em projetos sem autorização expressa do autor. Consulte [LICENSE](LICENSE).
+CCopyright (c) 2026 Lipe. É permitido utilizar e modificar o código deste plugin, desde que os créditos e a licença sejam mantidos. A redistribuição, publicação ou venda do código original ou modificado não é permitida sem autorização expressa do autor. Consulte o arquivo [LICENSE](LICENSE).
