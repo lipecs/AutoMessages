@@ -1,0 +1,37 @@
+name: AutoMessages
+version: 1.0.0
+main: br.com.lipe.automessages.AutoMessagesPlugin
+author: Lipe
+description: Envia mensagens automáticas configuráveis no chat do servidor.
+api-version: "1.13"
+
+commands:
+  automessages:
+    description: Gerencia as mensagens automáticas do servidor.
+    usage: /automessages help
+    aliases: [automsg, am]
+
+permissions:
+  automessages.admin:
+    description: Concede acesso a todos os comandos administrativos do AutoMessages.
+    default: op
+    children:
+      automessages.reload: true
+      automessages.list: true
+      automessages.toggle: true
+      automessages.send: true
+  automessages.reload:
+    description: Permite recarregar as configurações do AutoMessages.
+    default: op
+  automessages.list:
+    description: Permite listar as mensagens configuradas.
+    default: op
+  automessages.toggle:
+    description: Permite ativar ou desativar mensagens específicas.
+    default: op
+  automessages.send:
+    description: Permite enviar uma mensagem imediatamente.
+    default: op
+  automessages.bypass:
+    description: Impede o recebimento das mensagens enviadas pelo AutoMessages.
+    default: false

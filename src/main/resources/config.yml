@@ -1,0 +1,27 @@
+enabled: true
+interval-seconds: 60
+random-order: false
+skip-when-empty: true
+prefix: "&8[&bAutoMessages&8] "
+
+proxy:
+  enabled: false
+
+messages:
+  discord:
+    enabled: true
+    text:
+      - "&bEntre em nosso Discord!"
+      - "&7Utilize &f/discord &7para receber o convite."
+
+  store:
+    enabled: true
+    text:
+      - "&6Visite nossa loja!"
+      - "&eAdquira vantagens e ajude o servidor."
+
+  help:
+    enabled: true
+    text:
+      - "&aPrecisa de ajuda?"
+      - "&7Utilize &f/ajuda&7."

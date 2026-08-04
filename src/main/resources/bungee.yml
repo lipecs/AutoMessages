@@ -1,0 +1,5 @@
+name: AutoMessages
+version: 1.0.0
+main: br.com.lipe.automessages.proxy.bungee.AutoMessagesBungeePlugin
+author: Lipe
+description: Distribui mensagens automáticas entre servidores conectados ao proxy.
