@@ -8,6 +8,8 @@
 
 AutoMessages é um plugin leve para servidores Minecraft que envia anúncios configuráveis no chat em intervalos regulares. Ele funciona localmente em Spigot/Paper ou de forma centralizada em redes BungeeCord e Velocity utilizando a mesma JAR.
 
+Além do chat, o plugin transmite mensagens em ActionBar, Title/Subtitle e BossBar, com suporte a componentes da Adventure API e formatação MiniMessage.
+
 ## Funcionalidades
 
 - Envio automático de mensagens com múltiplas linhas.
@@ -25,10 +27,20 @@ AutoMessages é um plugin leve para servidores Minecraft que envia anúncios con
 - Permissão de bypass para jogadores que não desejam receber os anúncios.
 - Modo proxy opcional para sincronizar anúncios em todos os servidores da rede.
 - Uma única JAR para Spigot, Paper, BungeeCord e Velocity.
+- Tipos de transmissão `CHAT`, `ACTION_BAR`, `TITLE` e `BOSS_BAR`.
+- Title e Subtitle com tempos de entrada, permanência e saída configuráveis.
+- BossBar com cor, estilo, progresso e duração configuráveis.
+- Formatação tradicional com `&` e formatação avançada com MiniMessage.
+- Adventure API incorporada e isolada dentro da própria JAR.
+- Intervalos dinâmicos definidos individualmente para cada mensagem.
+- Criação, edição e exclusão de mensagens diretamente por comandos.
+- Agendamento otimizado com somente uma tarefa automática ativa por instância.
 
 ## Compatibilidade
 
 Uma única JAR é compatível com Spigot e Paper da versão 1.8.9 até a 1.21.11.
+
+A Adventure API e o MiniMessage são empacotados e relocados dentro da JAR. Isso permite utilizar componentes avançados sem instalar dependências adicionais e evita conflitos com bibliotecas fornecidas pelo servidor.
 
 A mesma JAR contém entradas independentes para BungeeCord e Velocity. A integração com os backends usa o canal de plugin messaging `automsg:proxy`, válido tanto no limite legado do Bukkit 1.8 quanto no formato namespaced das versões modernas.
 
@@ -65,6 +77,8 @@ O transporte utiliza as conexões dos jogadores. Um backend vazio não recebe pa
 
 Os comandos administrativos continuam disponíveis nos servidores Spigot/Paper. O arquivo do proxy é aplicado ao reiniciar o proxy; o comando de reload executado em um backend não recarrega o arquivo que pertence ao proxy.
 
+Os tipos Chat, ActionBar, Title/Subtitle e BossBar também são transportados pelo modo proxy, incluindo seus formatos, intervalos e opções visuais.
+
 ## Comandos
 
 | Comando | Descrição |
@@ -77,8 +91,11 @@ Os comandos administrativos continuam disponíveis nos servidores Spigot/Paper. 
 | `/automessages disable` | Desativa o envio automático. |
 | `/automessages toggle <id>` | Ativa ou desativa uma mensagem e salva a alteração. |
 | `/automessages send <id>` | Envia imediatamente a mensagem indicada. |
+| `/automessages create <id> <tipo> <texto>` | Cria uma mensagem com o tipo informado. |
+| `/automessages edit <id> <text\|type> <valor>` | Edita o texto ou o tipo de uma mensagem. |
+| `/automessages delete <id>` | Exclui uma mensagem do `config.yml`. |
 
-Aliases disponíveis: `/automsg` e `/am`.
+Aliases disponíveis: `/automsg`, `/automessage` e `/am`.
 
 ## Permissões
 
@@ -91,7 +108,7 @@ Aliases disponíveis: `/automsg` e `/am`.
 | `automessages.send` | Envia uma mensagem manualmente. | Operadores |
 | `automessages.bypass` | Não recebe mensagens distribuídas pelo plugin. | Ninguém |
 
-`automessages.admin` herda todas as permissões administrativas específicas. Os comandos `enable` e `disable` exigem diretamente `automessages.admin`.
+`automessages.admin` herda todas as permissões administrativas específicas. Os comandos `enable`, `disable`, `create`, `edit` e `delete` exigem diretamente `automessages.admin`.
 
 ## Configuração
 
@@ -127,6 +144,56 @@ messages:
 
 Cada chave dentro de `messages` é um ID único. Todas as linhas de `text` são enviadas na ordem declarada. O comando `toggle` atualiza o campo `enabled` correspondente e salva o `config.yml`.
 
+## Tipos e formatos de transmissão
+
+O campo `type` aceita `CHAT`, `ACTION_BAR`, `TITLE` ou `BOSS_BAR`. Quando ele não é informado, a mensagem utiliza `CHAT` para manter compatibilidade com configurações anteriores.
+
+O campo `format` aceita:
+
+- `AUTO`: identifica automaticamente mensagens MiniMessage e mantém suporte às cores com `&`.
+- `LEGACY`: utiliza somente as cores tradicionais do Minecraft com `&`.
+- `MINI_MESSAGE`: utiliza tags como `<aqua>`, `<bold>` e `<gradient:#00ffff:#0066ff>`.
+
+O campo opcional `interval-seconds` define quanto tempo o plugin aguardará depois de enviar aquela mensagem. Quando ausente ou igual a `0`, será utilizado o intervalo global configurado no início do arquivo.
+
+```yml
+messages:
+  actionbar-tip:
+    enabled: true
+    type: ACTION_BAR
+    format: MINI_MESSAGE
+    interval-seconds: 45
+    text:
+      - "<yellow>Use <white>/ajuda</white> para consultar os comandos."
+
+  server-title:
+    enabled: true
+    type: TITLE
+    format: MINI_MESSAGE
+    interval-seconds: 120
+    title: "<aqua>AutoMessages"
+    subtitle: "<gray>Mensagens configuráveis para sua rede"
+    fade-in: 10
+    stay: 60
+    fade-out: 20
+
+  store-bossbar:
+    enabled: true
+    type: BOSS_BAR
+    format: MINI_MESSAGE
+    interval-seconds: 90
+    text:
+      - "<gold>Visite nossa loja e aproveite as vantagens!"
+    color: BLUE
+    style: PROGRESS
+    progress: 1.0
+    duration-seconds: 10
+```
+
+As cores disponíveis para BossBar são `PINK`, `BLUE`, `RED`, `GREEN`, `YELLOW`, `PURPLE` e `WHITE`. Os estilos disponíveis são `PROGRESS`, `NOTCHED_6`, `NOTCHED_10`, `NOTCHED_12` e `NOTCHED_20`. O progresso aceita valores entre `0.0` e `1.0`.
+
+Os valores `fade-in`, `stay` e `fade-out` de títulos são medidos em ticks. O campo `duration-seconds` controla por quantos segundos a BossBar permanece visível. O prefixo global é aplicado somente às mensagens do tipo Chat.
+
 Deixe `proxy.enabled` como `false` para funcionamento local. Para uma rede, use `true` no proxy e nos backends. As mensagens automáticas da rede são lidas do `config.yml` localizado na pasta do AutoMessages no proxy.
 
 As respostas administrativas ficam em `messages.yml`. Os placeholders disponíveis incluem `{id}`, `{status}`, `{interval}` e `{count}`, de acordo com cada mensagem padrão.
@@ -159,7 +226,12 @@ AutoMessages/
         │       ├── AutoMessagesPlugin.java
         │       ├── command/AutoMessagesCommand.java
         │       ├── config/ConfigManager.java
-        │       ├── message/MessageManager.java
+        │       ├── message/
+        │       │   ├── AdventureMessageRenderer.java
+        │       │   ├── BroadcastMessage.java
+        │       │   ├── BroadcastType.java
+        │       │   ├── MessageFormat.java
+        │       │   └── MessageManager.java
         │       ├── proxy/
         │       │   ├── ProxyLogger.java
         │       │   ├── ProxyPlatform.java
