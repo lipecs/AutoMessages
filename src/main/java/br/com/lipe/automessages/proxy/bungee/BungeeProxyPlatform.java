@@ -32,12 +32,11 @@ public final class BungeeProxyPlatform implements ProxyPlatform {
     }
 
     @Override
-    public ProxyTask scheduleRepeating(Runnable runnable, long intervalSeconds) {
+    public ProxyTask schedule(Runnable runnable, long delaySeconds) {
         final ScheduledTask task = plugin.getProxy().getScheduler().schedule(
                 plugin,
                 runnable,
-                intervalSeconds,
-                intervalSeconds,
+                delaySeconds,
                 TimeUnit.SECONDS
         );
         return new ProxyTask() {

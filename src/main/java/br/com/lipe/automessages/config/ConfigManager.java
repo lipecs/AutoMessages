@@ -5,6 +5,9 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import br.com.lipe.automessages.message.BroadcastMessage;
+import br.com.lipe.automessages.message.BroadcastType;
+import br.com.lipe.automessages.message.MessageFormat;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -102,6 +105,82 @@ public final class ConfigManager {
     public boolean isMessageEnabled(String id) {
         ConfigurationSection messageSection = getMessageSection(id);
         return messageSection != null && messageSection.getBoolean("enabled", true);
+    }
+
+    public BroadcastMessage getBroadcastMessage(String id) {
+        String configuredId = findMessageId(id);
+        ConfigurationSection section = getMessageSection(configuredId);
+        if (section == null) {
+            return null;
+        }
+
+        return BroadcastMessage.builder(configuredId)
+                .enabled(section.getBoolean("enabled", true))
+                .type(BroadcastType.from(section.getString("type", "CHAT")))
+                .format(MessageFormat.from(section.getString("format", "AUTO")))
+                .text(readText(section))
+                .title(section.getString("title", ""))
+                .subtitle(section.getString("subtitle", ""))
+                .fadeIn(section.getInt("fade-in", 10))
+                .stay(section.getInt("stay", 70))
+                .fadeOut(section.getInt("fade-out", 20))
+                .bossBarColor(section.getString("color", "BLUE"))
+                .bossBarStyle(section.getString("style", "PROGRESS"))
+                .progress((float) section.getDouble("progress", 1.0D))
+                .durationSeconds(readNonNegativeLong(section.get("duration-seconds"), 10L))
+                .intervalSeconds(readNonNegativeLong(section.get("interval-seconds"), 0L))
+                .build();
+    }
+
+    public long getMessageIntervalSeconds(String id) {
+        BroadcastMessage message = getBroadcastMessage(id);
+        if (message == null || message.getIntervalSeconds() <= 0L) {
+            return intervalSeconds;
+        }
+        return message.getIntervalSeconds();
+    }
+
+    public boolean createMessage(String id, BroadcastType type, String text) {
+        if (!isValidMessageId(id) || findMessageId(id) != null) {
+            return false;
+        }
+        String path = "messages." + id;
+        plugin.getConfig().set(path + ".enabled", true);
+        plugin.getConfig().set(path + ".type", type.name());
+        plugin.getConfig().set(path + ".format", "AUTO");
+        plugin.getConfig().set(path + ".text", Collections.singletonList(text));
+        plugin.saveConfig();
+        return true;
+    }
+
+    public boolean editMessageText(String id, String text) {
+        String configuredId = findMessageId(id);
+        if (configuredId == null) {
+            return false;
+        }
+        plugin.getConfig().set("messages." + configuredId + ".text", Collections.singletonList(text));
+        plugin.saveConfig();
+        return true;
+    }
+
+    public boolean editMessageType(String id, BroadcastType type) {
+        String configuredId = findMessageId(id);
+        if (configuredId == null) {
+            return false;
+        }
+        plugin.getConfig().set("messages." + configuredId + ".type", type.name());
+        plugin.saveConfig();
+        return true;
+    }
+
+    public boolean deleteMessage(String id) {
+        String configuredId = findMessageId(id);
+        if (configuredId == null) {
+            return false;
+        }
+        plugin.getConfig().set("messages." + configuredId, null);
+        plugin.saveConfig();
+        return true;
     }
 
     public void setMessageEnabled(String id, boolean enabled) {
@@ -206,6 +285,27 @@ public final class ConfigManager {
 
     private void warnInvalidInterval() {
         plugin.getLogger().warning("interval-seconds é inválido. O valor padrão de 60 segundos será utilizado.");
+    }
+
+    private List<String> readText(ConfigurationSection section) {
+        if (section.isList("text")) {
+            return new ArrayList<String>(section.getStringList("text"));
+        }
+        if (section.isString("text")) {
+            return Collections.singletonList(section.getString("text", ""));
+        }
+        return Collections.emptyList();
+    }
+
+    private long readNonNegativeLong(Object value, long defaultValue) {
+        if (!(value instanceof Number)) {
+            return defaultValue;
+        }
+        return Math.max(0L, ((Number) value).longValue());
+    }
+
+    private boolean isValidMessageId(String id) {
+        return id != null && id.matches("[A-Za-z0-9_-]{1,32}");
     }
 
     private ConfigurationSection getMessageSection(String id) {

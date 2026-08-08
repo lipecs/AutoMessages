@@ -25,13 +25,17 @@ public final class AutoMessageTask {
             return;
         }
 
-        long intervalTicks = configManager.getIntervalSeconds() * 20L;
-        scheduledTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+        scheduleNext(configManager.getIntervalSeconds());
+    }
+
+    private void scheduleNext(long intervalSeconds) {
+        long intervalTicks = safeTicks(intervalSeconds);
+        scheduledTask = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
             public void run() {
                 sendNextMessage();
             }
-        }, intervalTicks, intervalTicks);
+        }, intervalTicks);
     }
 
     public void stop() {
@@ -43,8 +47,14 @@ public final class AutoMessageTask {
 
     private void sendNextMessage() {
         if (configManager.shouldSkipWhenEmpty() && Bukkit.getOnlinePlayers().isEmpty()) {
+            scheduleNext(configManager.getIntervalSeconds());
             return;
         }
         messageManager.broadcastNextMessage();
+        scheduleNext(messageManager.getLastIntervalSeconds());
+    }
+
+    private long safeTicks(long seconds) {
+        return seconds > Long.MAX_VALUE / 20L ? Long.MAX_VALUE / 20L : seconds * 20L;
     }
 }

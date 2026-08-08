@@ -10,18 +10,57 @@ proxy:
 messages:
   discord:
     enabled: true
+    type: CHAT
+    format: AUTO
+    interval-seconds: 60
     text:
       - "&bEntre em nosso Discord!"
       - "&7Utilize &f/discord &7para receber o convite."
 
   store:
     enabled: true
+    type: CHAT
+    format: AUTO
+    interval-seconds: 75
     text:
       - "&6Visite nossa loja!"
       - "&eAdquira vantagens e ajude o servidor."
 
   help:
     enabled: true
+    type: CHAT
+    format: AUTO
     text:
       - "&aPrecisa de ajuda?"
       - "&7Utilize &f/ajuda&7."
+
+  actionbar-tip:
+    enabled: false
+    type: ACTION_BAR
+    format: MINI_MESSAGE
+    interval-seconds: 45
+    text:
+      - "<yellow>Use <white>/ajuda</white> para consultar os comandos."
+
+  server-title:
+    enabled: false
+    type: TITLE
+    format: MINI_MESSAGE
+    interval-seconds: 120
+    title: "<aqua>AutoMessages"
+    subtitle: "<gray>Mensagens configuráveis para sua rede"
+    fade-in: 10
+    stay: 60
+    fade-out: 20
+
+  store-bossbar:
+    enabled: false
+    type: BOSS_BAR
+    format: MINI_MESSAGE
+    interval-seconds: 90
+    text:
+      - "<gold>Visite nossa loja e aproveite as vantagens!"
+    color: BLUE
+    style: PROGRESS
+    progress: 1.0
+    duration-seconds: 10

@@ -1,11 +1,11 @@
 package br.com.lipe.automessages.proxy;
 
+import br.com.lipe.automessages.message.BroadcastMessage;
 import br.com.lipe.automessages.proxy.config.ProxyConfigManager;
 import br.com.lipe.automessages.proxy.message.ProxyMessageManager;
 import br.com.lipe.automessages.proxy.message.ProxyMessagePacket;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public final class ProxyRuntime {
 
@@ -44,30 +44,45 @@ public final class ProxyRuntime {
         }
 
         messageManager.resetSequence();
-        scheduledTask = platform.scheduleRepeating(new Runnable() {
+        scheduleNext(configManager.getIntervalSeconds());
+        platform.info("Modo proxy do AutoMessages foi ativado.");
+    }
+
+    private void scheduleNext(long delaySeconds) {
+        stop();
+        if (!configManager.isProxyEnabled() || !configManager.isSystemEnabled()) {
+            return;
+        }
+        scheduledTask = platform.schedule(new Runnable() {
             @Override
             public void run() {
                 broadcastNextMessage();
             }
-        }, configManager.getIntervalSeconds());
-        platform.info("Modo proxy do AutoMessages foi ativado.");
+        }, delaySeconds);
     }
 
     private void broadcastNextMessage() {
         if (configManager.shouldSkipWhenEmpty() && platform.getOnlinePlayerCount() == 0) {
+            scheduleNext(configManager.getIntervalSeconds());
             return;
         }
 
-        List<String> lines = messageManager.getNextMessageLines();
-        if (lines.isEmpty()) {
+        BroadcastMessage message = messageManager.getNextMessage();
+        if (message == null) {
+            scheduleNext(configManager.getIntervalSeconds());
             return;
         }
 
-        byte[] data = ProxyMessagePacket.encode(lines);
+        byte[] data = ProxyMessagePacket.encode(message);
         if (data.length == 0) {
             platform.warning("Uma mensagem excedeu o limite do canal e não foi enviada.");
+            scheduleNext(configManager.getIntervalSeconds());
             return;
         }
         platform.broadcastPluginMessage(data);
+        long nextInterval = message.getIntervalSeconds() > 0L
+                ? message.getIntervalSeconds()
+                : configManager.getIntervalSeconds();
+        scheduleNext(nextInterval);
     }
 }

@@ -1,5 +1,7 @@
 package br.com.lipe.automessages.proxy.message;
 
+import br.com.lipe.automessages.message.BroadcastMessage;
+import br.com.lipe.automessages.message.BroadcastType;
 import br.com.lipe.automessages.proxy.config.ProxyConfigManager;
 
 import java.util.ArrayList;
@@ -17,44 +19,44 @@ public final class ProxyMessageManager {
         this.configManager = configManager;
     }
 
-    public List<String> getNextMessageLines() {
-        List<String> availableMessages = getAvailableMessages();
+    public BroadcastMessage getNextMessage() {
+        List<BroadcastMessage> availableMessages = getAvailableMessages();
         if (availableMessages.isEmpty()) {
-            return Collections.emptyList();
+            return null;
         }
 
-        String id = selectNextMessage(availableMessages);
-        List<String> prefixedLines = new ArrayList<String>();
-        for (String line : configManager.getMessageLines(id)) {
-            prefixedLines.add(configManager.getPrefix() + line);
+        BroadcastMessage selectedMessage;
+        if (configManager.isRandomOrder()) {
+            selectedMessage = availableMessages.get(random.nextInt(availableMessages.size()));
+        } else {
+            if (sequenceIndex >= availableMessages.size()) {
+                sequenceIndex = 0;
+            }
+            selectedMessage = availableMessages.get(sequenceIndex);
+            sequenceIndex = (sequenceIndex + 1) % availableMessages.size();
         }
-        return prefixedLines;
+        return selectedMessage.withTextPrefix(configManager.getPrefix());
     }
 
     public void resetSequence() {
         sequenceIndex = 0;
     }
 
-    private List<String> getAvailableMessages() {
-        List<String> availableMessages = new ArrayList<String>();
+    private List<BroadcastMessage> getAvailableMessages() {
+        List<BroadcastMessage> availableMessages = new ArrayList<BroadcastMessage>();
         for (String id : configManager.getMessageIds()) {
-            if (configManager.isMessageEnabled(id) && !configManager.getMessageLines(id).isEmpty()) {
-                availableMessages.add(id);
+            BroadcastMessage message = configManager.getBroadcastMessage(id);
+            if (message != null && message.isEnabled() && isSendable(message)) {
+                availableMessages.add(message);
             }
         }
-        return availableMessages;
+        return availableMessages.isEmpty() ? Collections.<BroadcastMessage>emptyList() : availableMessages;
     }
 
-    private String selectNextMessage(List<String> availableMessages) {
-        if (configManager.isRandomOrder()) {
-            return availableMessages.get(random.nextInt(availableMessages.size()));
+    private boolean isSendable(BroadcastMessage message) {
+        if (message.getType() == BroadcastType.TITLE) {
+            return !message.getTitle().isEmpty() || !message.getSubtitle().isEmpty();
         }
-
-        if (sequenceIndex >= availableMessages.size()) {
-            sequenceIndex = 0;
-        }
-        String selectedMessage = availableMessages.get(sequenceIndex);
-        sequenceIndex = (sequenceIndex + 1) % availableMessages.size();
-        return selectedMessage;
+        return !message.getText().isEmpty();
     }
 }

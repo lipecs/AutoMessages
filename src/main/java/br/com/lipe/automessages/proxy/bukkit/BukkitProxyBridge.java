@@ -2,12 +2,11 @@ package br.com.lipe.automessages.proxy.bukkit;
 
 import br.com.lipe.automessages.config.ConfigManager;
 import br.com.lipe.automessages.message.MessageManager;
+import br.com.lipe.automessages.message.BroadcastMessage;
 import br.com.lipe.automessages.proxy.message.ProxyMessagePacket;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
-
-import java.util.List;
 
 public final class BukkitProxyBridge implements PluginMessageListener {
 
@@ -56,9 +55,9 @@ public final class BukkitProxyBridge implements PluginMessageListener {
             return;
         }
 
-        List<String> lines = ProxyMessagePacket.decode(data);
-        if (!lines.isEmpty()) {
-            messageManager.broadcastLines(lines);
+        BroadcastMessage message = ProxyMessagePacket.decode(data);
+        if (message != null) {
+            messageManager.broadcastRemote(message);
         }
     }
 }

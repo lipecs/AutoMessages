@@ -1,6 +1,9 @@
 package br.com.lipe.automessages.proxy.config;
 
 import br.com.lipe.automessages.proxy.ProxyLogger;
+import br.com.lipe.automessages.message.BroadcastMessage;
+import br.com.lipe.automessages.message.BroadcastType;
+import br.com.lipe.automessages.message.MessageFormat;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -79,6 +82,30 @@ public final class ProxyConfigManager {
         return getBoolean(message.get("enabled"), true);
     }
 
+    public BroadcastMessage getBroadcastMessage(String id) {
+        Map<String, Object> message = getSection(getMessagesSection(), id);
+        if (message.isEmpty()) {
+            return null;
+        }
+
+        return BroadcastMessage.builder(id)
+                .enabled(getBoolean(message.get("enabled"), true))
+                .type(BroadcastType.from(getString(message.get("type"), "CHAT")))
+                .format(MessageFormat.from(getString(message.get("format"), "AUTO")))
+                .text(readText(message.get("text")))
+                .title(getString(message.get("title"), ""))
+                .subtitle(getString(message.get("subtitle"), ""))
+                .fadeIn(readInt(message.get("fade-in"), 10))
+                .stay(readInt(message.get("stay"), 70))
+                .fadeOut(readInt(message.get("fade-out"), 20))
+                .bossBarColor(getString(message.get("color"), "BLUE"))
+                .bossBarStyle(getString(message.get("style"), "PROGRESS"))
+                .progress(readFloat(message.get("progress"), 1.0F))
+                .durationSeconds(readNonNegativeLong(message.get("duration-seconds"), 10L))
+                .intervalSeconds(readNonNegativeLong(message.get("interval-seconds"), 0L))
+                .build();
+    }
+
     public List<String> getMessageLines(String id) {
         Map<String, Object> message = getSection(getMessagesSection(), id);
         Object configuredText = message.get("text");
@@ -96,6 +123,14 @@ public final class ProxyConfigManager {
             }
         }
         return lines;
+    }
+
+    public long getMessageIntervalSeconds(String id) {
+        BroadcastMessage message = getBroadcastMessage(id);
+        if (message == null || message.getIntervalSeconds() <= 0L) {
+            return intervalSeconds;
+        }
+        return message.getIntervalSeconds();
     }
 
     private void createDefaultConfig() {
@@ -184,6 +219,34 @@ public final class ProxyConfigManager {
 
     private String getString(Object value, String defaultValue) {
         return value instanceof String ? (String) value : defaultValue;
+    }
+
+    private List<String> readText(Object value) {
+        if (value instanceof String) {
+            return Collections.singletonList((String) value);
+        }
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<String> lines = new ArrayList<String>();
+        for (Object line : (List<?>) value) {
+            if (line instanceof String) {
+                lines.add((String) line);
+            }
+        }
+        return lines;
+    }
+
+    private int readInt(Object value, int defaultValue) {
+        return value instanceof Number ? ((Number) value).intValue() : defaultValue;
+    }
+
+    private float readFloat(Object value, float defaultValue) {
+        return value instanceof Number ? ((Number) value).floatValue() : defaultValue;
+    }
+
+    private long readNonNegativeLong(Object value, long defaultValue) {
+        return value instanceof Number ? Math.max(0L, ((Number) value).longValue()) : defaultValue;
     }
 
     @SuppressWarnings("unchecked")

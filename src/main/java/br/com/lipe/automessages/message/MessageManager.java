@@ -2,8 +2,8 @@ package br.com.lipe.automessages.message;
 
 import br.com.lipe.automessages.config.ConfigManager;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,82 +18,121 @@ public final class MessageManager {
     }
 
     private final ConfigManager configManager;
+    private final AdventureMessageRenderer renderer;
     private final Random random;
     private int sequenceIndex;
+    private long lastIntervalSeconds;
 
-    public MessageManager(ConfigManager configManager) {
+    public MessageManager(JavaPlugin plugin, ConfigManager configManager) {
         this.configManager = configManager;
+        renderer = new AdventureMessageRenderer(plugin);
         random = new Random();
+        lastIntervalSeconds = configManager.getIntervalSeconds();
     }
 
     public boolean broadcastNextMessage() {
-        List<String> availableMessages = getAvailableAutomaticMessages();
-        if (availableMessages.isEmpty()) {
+        BroadcastMessage message = selectNextMessage();
+        if (message == null) {
+            lastIntervalSeconds = configManager.getIntervalSeconds();
             return false;
         }
-
-        String id = selectNextMessage(availableMessages);
-        return broadcastMessage(id) == SendResult.SENT;
+        lastIntervalSeconds = message.getIntervalSeconds() > 0L
+                ? message.getIntervalSeconds()
+                : configManager.getIntervalSeconds();
+        broadcast(message.withTextPrefix(configManager.getPrefix()));
+        return true;
     }
 
     public SendResult broadcastMessage(String id) {
-        String configuredId = configManager.findMessageId(id);
-        if (configuredId == null) {
+        BroadcastMessage message = configManager.getBroadcastMessage(id);
+        if (message == null) {
             return SendResult.UNKNOWN_MESSAGE;
         }
-
-        List<String> lines = configManager.getMessageLines(configuredId);
-        if (lines.isEmpty()) {
+        if (!isSendable(message)) {
             return SendResult.EMPTY_MESSAGE;
         }
-
-        List<String> prefixedLines = new ArrayList<String>();
-        for (String line : lines) {
-            prefixedLines.add(configManager.getPrefix() + line);
-        }
-        broadcastLines(prefixedLines);
+        broadcast(message.withTextPrefix(configManager.getPrefix()));
         return SendResult.SENT;
     }
 
-    public void broadcastLines(List<String> lines) {
-        for (String line : lines) {
-            broadcastLine(line);
+    public void broadcastRemote(BroadcastMessage message) {
+        if (message != null && isSendable(message)) {
+            broadcast(message);
         }
+    }
+
+    public void broadcastLines(List<String> lines) {
+        if (lines == null || lines.isEmpty()) {
+            return;
+        }
+        broadcastRemote(BroadcastMessage.builder("remote")
+                .type(BroadcastType.CHAT)
+                .format(MessageFormat.LEGACY)
+                .text(lines)
+                .build());
     }
 
     public void resetSequence() {
         sequenceIndex = 0;
+        lastIntervalSeconds = configManager.getIntervalSeconds();
     }
 
-    private List<String> getAvailableAutomaticMessages() {
-        List<String> availableMessages = new ArrayList<String>();
+    public long getLastIntervalSeconds() {
+        return lastIntervalSeconds;
+    }
+
+    public void close() {
+        renderer.close();
+    }
+
+    private void broadcast(BroadcastMessage message) {
+        if (message.getType() == BroadcastType.BOSS_BAR) {
+            renderer.sendBossBarToAll(message);
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!player.hasPermission("automessages.bypass")) {
+                renderer.send(player, message);
+            }
+        }
+    }
+
+    private BroadcastMessage selectNextMessage() {
+        List<BroadcastMessage> availableMessages = getAvailableMessages();
+        if (availableMessages.isEmpty()) {
+            return null;
+        }
+        if (configManager.isRandomOrder()) {
+            return availableMessages.get(random.nextInt(availableMessages.size()));
+        }
+        if (sequenceIndex >= availableMessages.size()) {
+            sequenceIndex = 0;
+        }
+        BroadcastMessage message = availableMessages.get(sequenceIndex);
+        sequenceIndex = (sequenceIndex + 1) % availableMessages.size();
+        return message;
+    }
+
+    private List<BroadcastMessage> getAvailableMessages() {
+        List<BroadcastMessage> availableMessages = new ArrayList<BroadcastMessage>();
         for (String id : configManager.getMessageIds()) {
-            if (configManager.isMessageEnabled(id) && !configManager.getMessageLines(id).isEmpty()) {
-                availableMessages.add(id);
+            BroadcastMessage message = configManager.getBroadcastMessage(id);
+            if (message != null && message.isEnabled() && isSendable(message)) {
+                availableMessages.add(message);
             }
         }
         return availableMessages;
     }
 
-    private String selectNextMessage(List<String> availableMessages) {
-        if (configManager.isRandomOrder()) {
-            return availableMessages.get(random.nextInt(availableMessages.size()));
-        }
-
-        if (sequenceIndex >= availableMessages.size()) {
-            sequenceIndex = 0;
-        }
-        String selectedMessage = availableMessages.get(sequenceIndex);
-        sequenceIndex = (sequenceIndex + 1) % availableMessages.size();
-        return selectedMessage;
-    }
-
-    private void broadcastLine(String line) {
-        String coloredLine = ChatColor.translateAlternateColorCodes('&', line);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.hasPermission("automessages.bypass")) {
-                player.sendMessage(coloredLine);
-            }
+    private boolean isSendable(BroadcastMessage message) {
+        switch (message.getType()) {
+            case TITLE:
+                return !message.getTitle().isEmpty() || !message.getSubtitle().isEmpty();
+            case CHAT:
+            case ACTION_BAR:
+            case BOSS_BAR:
+            default:
+                return !message.getText().isEmpty();
         }
     }
 }

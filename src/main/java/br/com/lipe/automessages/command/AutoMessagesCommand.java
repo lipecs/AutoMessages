@@ -2,6 +2,8 @@ package br.com.lipe.automessages.command;
 
 import br.com.lipe.automessages.AutoMessagesPlugin;
 import br.com.lipe.automessages.config.ConfigManager;
+import br.com.lipe.automessages.message.BroadcastMessage;
+import br.com.lipe.automessages.message.BroadcastType;
 import br.com.lipe.automessages.message.MessageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -19,7 +21,7 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
 
     private static final String ADMIN_PERMISSION = "automessages.admin";
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-            "help", "reload", "list", "enable", "disable", "toggle", "send"
+            "help", "reload", "list", "enable", "disable", "toggle", "send", "create", "edit", "delete"
     );
 
     private final AutoMessagesPlugin plugin;
@@ -54,6 +56,12 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
             toggle(sender, args);
         } else if ("send".equals(subcommand)) {
             send(sender, args);
+        } else if ("create".equals(subcommand)) {
+            create(sender, args);
+        } else if ("edit".equals(subcommand)) {
+            edit(sender, args);
+        } else if ("delete".equals(subcommand)) {
+            delete(sender, args);
         } else {
             sendAdministrativeMessage(sender, "invalid-command");
         }
@@ -65,15 +73,19 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
         if (args.length == 1) {
             return filterByPrefix(getAvailableSubcommands(sender), args[0]);
         }
-
-        if (args.length == 2 && "toggle".equalsIgnoreCase(args[0]) && hasPermission(sender, "automessages.toggle")) {
+        if (args.length == 2 && isIdSubcommand(args[0]) && hasPermission(sender, permissionFor(args[0]))) {
             return filterByPrefix(configManager.getMessageIds(), args[1]);
         }
-
-        if (args.length == 2 && "send".equalsIgnoreCase(args[0]) && hasPermission(sender, "automessages.send")) {
-            return filterByPrefix(configManager.getMessageIds(), args[1]);
+        if (args.length == 3 && "create".equalsIgnoreCase(args[0]) && hasPermission(sender, ADMIN_PERMISSION)) {
+            return filterByPrefix(Arrays.asList("CHAT", "ACTION_BAR", "TITLE", "BOSS_BAR"), args[2]);
         }
-
+        if (args.length == 3 && "edit".equalsIgnoreCase(args[0]) && hasPermission(sender, ADMIN_PERMISSION)) {
+            return filterByPrefix(Arrays.asList("text", "type"), args[2]);
+        }
+        if (args.length == 4 && "edit".equalsIgnoreCase(args[0])
+                && "type".equalsIgnoreCase(args[2]) && hasPermission(sender, ADMIN_PERMISSION)) {
+            return filterByPrefix(Arrays.asList("CHAT", "ACTION_BAR", "TITLE", "BOSS_BAR"), args[3]);
+        }
         return Collections.emptyList();
     }
 
@@ -96,12 +108,10 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
         if (!validatePermission(sender, "automessages.reload") || !validateArgumentCount(sender, args, 1, "reload-usage")) {
             return;
         }
-
         plugin.reloadPlugin();
-        Map<String, String> placeholders = configManager.placeholders(
+        sendAdministrativeMessage(sender, "reloaded", configManager.placeholders(
                 "interval", String.valueOf(configManager.getIntervalSeconds())
-        );
-        sendAdministrativeMessage(sender, "reloaded", placeholders);
+        ));
     }
 
     private void list(CommandSender sender, String[] args) {
@@ -117,10 +127,13 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
 
         sendAdministrativeMessage(sender, "list-header", configManager.placeholders("count", String.valueOf(ids.size())));
         for (String id : ids) {
+            BroadcastMessage message = configManager.getBroadcastMessage(id);
             String statusPath = configManager.isMessageEnabled(id) ? "status-enabled" : "status-disabled";
             Map<String, String> placeholders = configManager.placeholders(
                     "id", id,
-                    "status", configManager.getRawAdministrativeMessage(statusPath)
+                    "status", configManager.getRawAdministrativeMessage(statusPath),
+                    "type", message == null ? "CHAT" : message.getType().name(),
+                    "interval", String.valueOf(configManager.getMessageIntervalSeconds(id))
             );
             sendAdministrativeMessage(sender, "list-entry", placeholders);
         }
@@ -130,17 +143,14 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
         if (!validatePermission(sender, ADMIN_PERMISSION)) {
             return;
         }
-
         String usagePath = enabled ? "enable-usage" : "disable-usage";
         if (!validateArgumentCount(sender, args, 1, usagePath)) {
             return;
         }
-
         if (configManager.isSystemEnabled() == enabled) {
             sendAdministrativeMessage(sender, enabled ? "already-enabled" : "already-disabled");
             return;
         }
-
         plugin.setAutomaticMessagesEnabled(enabled);
         sendAdministrativeMessage(sender, enabled ? "enabled" : "disabled");
     }
@@ -149,39 +159,131 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
         if (!validatePermission(sender, "automessages.toggle") || !validateArgumentCount(sender, args, 2, "toggle-usage")) {
             return;
         }
-
         String id = configManager.findMessageId(args[1]);
         if (id == null) {
             sendAdministrativeMessage(sender, "unknown-message");
             return;
         }
-
         boolean enabled = !configManager.isMessageEnabled(id);
         configManager.setMessageEnabled(id, enabled);
-        Map<String, String> placeholders = configManager.placeholders(
+        sendAdministrativeMessage(sender, enabled ? "message-enabled" : "message-disabled", configManager.placeholders(
                 "id", id,
                 "status", configManager.getRawAdministrativeMessage(enabled ? "status-enabled" : "status-disabled")
-        );
-        sendAdministrativeMessage(sender, enabled ? "message-enabled" : "message-disabled", placeholders);
+        ));
     }
 
     private void send(CommandSender sender, String[] args) {
         if (!validatePermission(sender, "automessages.send") || !validateArgumentCount(sender, args, 2, "send-usage")) {
             return;
         }
-
         String id = configManager.findMessageId(args[1]);
         if (id == null) {
             sendAdministrativeMessage(sender, "unknown-message");
             return;
         }
-
         MessageManager.SendResult result = messageManager.broadcastMessage(id);
         if (result == MessageManager.SendResult.EMPTY_MESSAGE) {
             sendAdministrativeMessage(sender, "empty-message", configManager.placeholders("id", id));
             return;
         }
         sendAdministrativeMessage(sender, "message-sent", configManager.placeholders("id", id));
+    }
+
+    private void create(CommandSender sender, String[] args) {
+        if (!validatePermission(sender, ADMIN_PERMISSION) || !validateMinimumArgumentCount(sender, args, 4, "create-usage")) {
+            return;
+        }
+        BroadcastType type = parseType(args[2]);
+        if (type == null) {
+            sendAdministrativeMessage(sender, "invalid-type");
+            return;
+        }
+        String text = joinArguments(args, 3);
+        if (!configManager.createMessage(args[1], type, text)) {
+            sendAdministrativeMessage(sender, "message-exists");
+            return;
+        }
+        plugin.reloadPlugin();
+        sendAdministrativeMessage(sender, "message-created", configManager.placeholders("id", args[1]));
+    }
+
+    private void edit(CommandSender sender, String[] args) {
+        if (!validatePermission(sender, ADMIN_PERMISSION) || !validateMinimumArgumentCount(sender, args, 4, "edit-usage")) {
+            return;
+        }
+        String id = configManager.findMessageId(args[1]);
+        if (id == null) {
+            sendAdministrativeMessage(sender, "unknown-message");
+            return;
+        }
+        boolean edited;
+        if ("text".equalsIgnoreCase(args[2])) {
+            edited = configManager.editMessageText(id, joinArguments(args, 3));
+        } else if ("type".equalsIgnoreCase(args[2]) && args.length == 4) {
+            BroadcastType type = parseType(args[3]);
+            if (type == null) {
+                sendAdministrativeMessage(sender, "invalid-type");
+                return;
+            }
+            edited = configManager.editMessageType(id, type);
+        } else {
+            sendAdministrativeMessage(sender, "edit-usage");
+            return;
+        }
+        if (edited) {
+            plugin.reloadPlugin();
+            sendAdministrativeMessage(sender, "message-edited", configManager.placeholders("id", id));
+        }
+    }
+
+    private void delete(CommandSender sender, String[] args) {
+        if (!validatePermission(sender, ADMIN_PERMISSION) || !validateArgumentCount(sender, args, 2, "delete-usage")) {
+            return;
+        }
+        String id = configManager.findMessageId(args[1]);
+        if (id == null || !configManager.deleteMessage(id)) {
+            sendAdministrativeMessage(sender, "unknown-message");
+            return;
+        }
+        plugin.reloadPlugin();
+        sendAdministrativeMessage(sender, "message-deleted", configManager.placeholders("id", id));
+    }
+
+    private BroadcastType parseType(String value) {
+        if (value == null) {
+            return null;
+        }
+        for (BroadcastType type : BroadcastType.values()) {
+            if (type.name().equalsIgnoreCase(value)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    private String joinArguments(String[] args, int start) {
+        StringBuilder text = new StringBuilder();
+        for (int index = start; index < args.length; index++) {
+            if (text.length() > 0) {
+                text.append(' ');
+            }
+            text.append(args[index]);
+        }
+        return text.toString();
+    }
+
+    private boolean isIdSubcommand(String subcommand) {
+        return "toggle".equalsIgnoreCase(subcommand)
+                || "send".equalsIgnoreCase(subcommand)
+                || "edit".equalsIgnoreCase(subcommand)
+                || "delete".equalsIgnoreCase(subcommand);
+    }
+
+    private String permissionFor(String subcommand) {
+        if ("edit".equalsIgnoreCase(subcommand) || "delete".equalsIgnoreCase(subcommand)) {
+            return ADMIN_PERMISSION;
+        }
+        return "automessages." + subcommand;
     }
 
     private boolean validatePermission(CommandSender sender, String permission) {
@@ -194,6 +296,14 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
 
     private boolean validateArgumentCount(CommandSender sender, String[] args, int expected, String usagePath) {
         if (args.length == expected) {
+            return true;
+        }
+        sendAdministrativeMessage(sender, usagePath);
+        return false;
+    }
+
+    private boolean validateMinimumArgumentCount(CommandSender sender, String[] args, int minimum, String usagePath) {
+        if (args.length >= minimum) {
             return true;
         }
         sendAdministrativeMessage(sender, usagePath);
@@ -216,7 +326,6 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
         if (!hasAnyAdministrativePermission(sender)) {
             return Collections.emptyList();
         }
-
         List<String> available = new ArrayList<String>();
         for (String subcommand : SUBCOMMANDS) {
             if (canUseSubcommand(sender, subcommand)) {
@@ -230,7 +339,8 @@ public final class AutoMessagesCommand implements CommandExecutor, TabCompleter 
         if ("help".equals(subcommand)) {
             return hasAnyAdministrativePermission(sender);
         }
-        if ("enable".equals(subcommand) || "disable".equals(subcommand)) {
+        if ("enable".equals(subcommand) || "disable".equals(subcommand)
+                || "create".equals(subcommand) || "edit".equals(subcommand) || "delete".equals(subcommand)) {
             return sender.hasPermission(ADMIN_PERMISSION);
         }
         return hasPermission(sender, "automessages." + subcommand);

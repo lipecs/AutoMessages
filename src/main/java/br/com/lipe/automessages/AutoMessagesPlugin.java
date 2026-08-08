@@ -20,7 +20,7 @@ public final class AutoMessagesPlugin extends JavaPlugin {
     public void onEnable() {
         configManager = new ConfigManager(this);
         configManager.initialize();
-        messageManager = new MessageManager(configManager);
+        messageManager = new MessageManager(this, configManager);
         autoMessageTask = new AutoMessageTask(this, configManager, messageManager);
         proxyBridge = new BukkitProxyBridge(this, configManager, messageManager);
 
@@ -43,6 +43,9 @@ public final class AutoMessagesPlugin extends JavaPlugin {
         }
         if (proxyBridge != null) {
             proxyBridge.stop();
+        }
+        if (messageManager != null) {
+            messageManager.close();
         }
         getLogger().info("AutoMessages foi desativado.");
     }

@@ -44,11 +44,10 @@ public final class VelocityProxyPlatform implements ProxyPlatform {
     }
 
     @Override
-    public ProxyTask scheduleRepeating(Runnable runnable, long intervalSeconds) {
+    public ProxyTask schedule(Runnable runnable, long delaySeconds) {
         final ScheduledTask task = proxyServer.getScheduler()
                 .buildTask(plugin, runnable)
-                .delay(intervalSeconds, TimeUnit.SECONDS)
-                .repeat(intervalSeconds, TimeUnit.SECONDS)
+                .delay(delaySeconds, TimeUnit.SECONDS)
                 .schedule();
         return new ProxyTask() {
             @Override

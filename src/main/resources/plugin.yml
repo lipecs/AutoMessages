@@ -9,7 +9,7 @@ commands:
   automessages:
     description: Gerencia as mensagens automáticas do servidor.
     usage: /automessages help
-    aliases: [automsg, am]
+    aliases: [automsg, automessage, am]
 
 permissions:
   automessages.admin:

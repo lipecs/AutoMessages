@@ -6,5 +6,5 @@ public interface ProxyPlatform extends ProxyLogger {
 
     void broadcastPluginMessage(byte[] data);
 
-    ProxyTask scheduleRepeating(Runnable runnable, long intervalSeconds);
+    ProxyTask schedule(Runnable runnable, long delaySeconds);
 }
